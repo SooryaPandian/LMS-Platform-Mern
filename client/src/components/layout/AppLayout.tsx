@@ -88,7 +88,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
             <Link to="/" className="text-xl font-bold text-foreground">
-              College LMS
+              NEXERA
             </Link>
           </div>
 
