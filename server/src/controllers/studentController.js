@@ -106,9 +106,13 @@ const createStudent = async (req, res) => {
       guardianId = parent._id;
     }
     
+    // Hash student password
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    
     // Create student
     const student = new Student({
       ...req.body,
+      password: hashedPassword,
       guardianId
     });
     await student.save();
@@ -123,7 +127,11 @@ const createStudent = async (req, res) => {
       ]
     });
     
-    res.status(201).json(student);
+    // Don't send password back
+    const studentResponse = student.toObject();
+    delete studentResponse.password;
+    
+    res.status(201).json(studentResponse);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -131,6 +139,8 @@ const createStudent = async (req, res) => {
 
 const updateStudent = async (req, res) => {
   try {
+    const bcrypt = require('bcryptjs');
+    
     // If updating classId, validate it exists
     if (req.body.classId) {
       const classExists = await Class.findById(req.body.classId);
@@ -139,7 +149,17 @@ const updateStudent = async (req, res) => {
       }
     }
     
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const updateData = { ...req.body };
+    
+    // Hash password if it's being updated (and not empty)
+    if (updateData.password && updateData.password.trim() !== '') {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    } else {
+      // Don't update password if not provided
+      delete updateData.password;
+    }
+    
+    const student = await Student.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true })
       .populate({
         path: 'classId',
         select: 'name departmentId batchId',

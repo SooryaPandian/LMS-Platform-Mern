@@ -62,10 +62,12 @@ export default function FacultyManagement() {
                 if (!updateData.password) {
                     delete (updateData as any).password;
                 }
-                await api.updateFaculty(editingFaculty.id, updateData);
+                await api.updateFaculty(editingFaculty._id || editingFaculty.id, updateData);
                 toast.success('Faculty updated successfully');
             } else {
-                await api.createFaculty(formData);
+                // Exclude id field when creating new faculty
+                const { id, ...createData } = formData;
+                await api.createFaculty(createData);
                 toast.success('Faculty created successfully');
             }
 
@@ -73,20 +75,30 @@ export default function FacultyManagement() {
             resetForm();
             fetchFaculty();
         } catch (error: any) {
+            console.log('Error saving faculty:', error.message);
             toast.error(error.message || 'Failed to save faculty');
         }
     };
 
     const handleEdit = (facultyMember: Faculty) => {
         setEditingFaculty(facultyMember);
+
+        // Extract departmentId as string
+        let deptId = '';
+        if (facultyMember.departmentId) {
+            if (typeof facultyMember.departmentId === 'object') {
+                deptId = (facultyMember.departmentId as any)._id || (facultyMember.departmentId as any).id || '';
+            } else {
+                deptId = facultyMember.departmentId;
+            }
+        }
+
         setFormData({
-            id: facultyMember.id,
+            id: facultyMember._id || facultyMember.id,
             name: facultyMember.name,
             email: facultyMember.email,
             password: '', // Don't populate password
-            departmentId: typeof facultyMember.departmentId === 'object'
-                ? facultyMember.departmentId.id
-                : facultyMember.departmentId,
+            departmentId: deptId,
             designation: facultyMember.designation || '',
             phoneNumber: facultyMember.phoneNumber || '',
         });
@@ -236,7 +248,7 @@ export default function FacultyManagement() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {departments.map(dept => (
-                                            <SelectItem key={dept.id} value={dept.id}>
+                                            <SelectItem key={dept._id || dept.id} value={dept._id || dept.id}>
                                                 {dept.code} - {dept.name}
                                             </SelectItem>
                                         ))}

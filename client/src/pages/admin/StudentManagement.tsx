@@ -84,7 +84,7 @@ export default function StudentManagement() {
 
         try {
             if (editingStudent) {
-                await api.updateStudent(editingStudent.id, formData);
+                await api.updateStudent(editingStudent._id || editingStudent.id, formData);
                 toast.success('Student updated successfully');
             } else {
                 await api.createStudent(formData);
@@ -101,13 +101,50 @@ export default function StudentManagement() {
 
     const handleEdit = (student: Student) => {
         setEditingStudent(student);
+
+        // Extract classId as string and also set filters
+        let classIdStr = '';
+        let deptIdStr = 'all';
+        let batchIdStr = 'all';
+
+        if (student.classId) {
+            if (typeof student.classId === 'object') {
+                const classObj = student.classId as any;
+                classIdStr = classObj._id || classObj.id || '';
+
+                // Extract department ID from populated class
+                if (classObj.departmentId) {
+                    if (typeof classObj.departmentId === 'object') {
+                        deptIdStr = classObj.departmentId._id || classObj.departmentId.id || 'all';
+                    } else {
+                        deptIdStr = classObj.departmentId;
+                    }
+                }
+
+                // Extract batch ID from populated class
+                if (classObj.batchId) {
+                    if (typeof classObj.batchId === 'object') {
+                        batchIdStr = classObj.batchId._id || classObj.batchId.id || 'all';
+                    } else {
+                        batchIdStr = classObj.batchId;
+                    }
+                }
+            } else {
+                classIdStr = student.classId;
+            }
+        }
+
+        // Set the filters so the class shows up in the filtered list
+        setSelectedDept(deptIdStr);
+        setSelectedBatch(batchIdStr);
+
         setFormData({
-            id: student.id,
+            id: student._id || student.id,
             name: student.name,
             rollNo: student.rollNo,
             email: student.email,
             password: '',
-            classId: typeof student.classId === 'object' ? student.classId.id : student.classId,
+            classId: classIdStr,
             guardianName: student.guardianName || '',
             guardianEmail: student.guardianEmail || '',
             guardianMobile: student.guardianMobile || ''
@@ -118,7 +155,7 @@ export default function StudentManagement() {
     const handleDelete = async (student: Student) => {
         if (confirm(`Are you sure you want to delete ${student.name}?`)) {
             try {
-                await api.deleteStudent(student.id);
+                await api.deleteStudent(student._id || student.id);
                 toast.success('Student deleted successfully');
                 fetchStudents();
             } catch (error: any) {
@@ -181,14 +218,14 @@ export default function StudentManagement() {
     ];
 
     // Filter options
-    const [selectedDept, setSelectedDept] = useState('');
-    const [selectedBatch, setSelectedBatch] = useState('');
+    const [selectedDept, setSelectedDept] = useState('all');
+    const [selectedBatch, setSelectedBatch] = useState('all');
 
     const filteredClasses = classes.filter(c => {
         const deptId = typeof c.departmentId === 'object' ? (c.departmentId._id || c.departmentId.id) : c.departmentId;
         const batchId = typeof c.batchId === 'object' ? (c.batchId._id || c.batchId.id) : c.batchId;
-        if (selectedDept && deptId !== selectedDept) return false;
-        if (selectedBatch && batchId !== selectedBatch) return false;
+        if (selectedDept !== 'all' && deptId !== selectedDept) return false;
+        if (selectedBatch !== 'all' && batchId !== selectedBatch) return false;
         return true;
     });
 
@@ -295,7 +332,7 @@ export default function StudentManagement() {
                                             <SelectValue placeholder="Filter by dept" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">All Departments</SelectItem>
+                                            <SelectItem value="all">All Departments</SelectItem>
                                             {departments.map(dept => (
                                                 <SelectItem key={dept._id || dept.id} value={dept._id || dept.id}>{dept.code}</SelectItem>
                                             ))}
@@ -306,7 +343,7 @@ export default function StudentManagement() {
                                             <SelectValue placeholder="Filter by batch" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">All Batches</SelectItem>
+                                            <SelectItem value="all">All Batches</SelectItem>
                                             {batches.map(batch => (
                                                 <SelectItem key={batch._id || batch.id} value={batch._id || batch.id}>{batch.name}</SelectItem>
                                             ))}

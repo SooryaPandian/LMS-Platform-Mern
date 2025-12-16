@@ -68,7 +68,9 @@ export interface Faculty {
   _id?: string;
   name: string;
   email: string;
-  departmentId: string;
+  departmentId: string | Department | null;
+  designation?: string;
+  phoneNumber?: string;
   roles: string[];
 }
 
