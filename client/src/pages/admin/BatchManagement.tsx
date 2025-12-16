@@ -42,7 +42,7 @@ export default function BatchManagement() {
 
     try {
       if (editingBatch) {
-        await api.updateBatch(editingBatch.id, formData);
+        await api.updateBatch(editingBatch._id || editingBatch.id, formData);
         toast.success('Batch updated successfully');
       } else {
         await api.createBatch(formData);
@@ -60,14 +60,19 @@ export default function BatchManagement() {
 
   const handleEdit = (batch: Batch) => {
     setEditingBatch(batch);
-    setFormData(batch);
+    setFormData({
+      id: batch._id || batch.id,
+      name: batch.name,
+      passingYear: batch.passingYear,
+      durationYears: batch.durationYears,
+    });
     setDialogOpen(true);
   };
 
   const handleDelete = async (batch: Batch) => {
     if (confirm(`Are you sure you want to delete ${batch.name}?`)) {
       try {
-        await api.deleteBatch(batch.id);
+        await api.deleteBatch(batch._id || batch.id);
         toast.success('Batch deleted successfully');
         await fetchBatches();
       } catch (error: any) {

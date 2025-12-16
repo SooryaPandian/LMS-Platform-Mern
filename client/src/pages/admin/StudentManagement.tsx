@@ -217,15 +217,43 @@ export default function StudentManagement() {
         'guardianName', 'guardianEmail', 'guardianMobile'
     ];
 
-    // Filter options
+    // Filter options for form (class dropdown)
     const [selectedDept, setSelectedDept] = useState('all');
     const [selectedBatch, setSelectedBatch] = useState('all');
+
+    // Filter options for student list
+    const [listFilterDept, setListFilterDept] = useState('all');
+    const [listFilterBatch, setListFilterBatch] = useState('all');
 
     const filteredClasses = classes.filter(c => {
         const deptId = typeof c.departmentId === 'object' ? (c.departmentId._id || c.departmentId.id) : c.departmentId;
         const batchId = typeof c.batchId === 'object' ? (c.batchId._id || c.batchId.id) : c.batchId;
         if (selectedDept !== 'all' && deptId !== selectedDept) return false;
         if (selectedBatch !== 'all' && batchId !== selectedBatch) return false;
+        return true;
+    });
+
+    // Filter students for the list
+    const filteredStudents = students.filter(student => {
+        if (listFilterDept === 'all' && listFilterBatch === 'all') return true;
+
+        const classObj = student.classId as any;
+        if (!classObj || typeof classObj !== 'object') return true;
+
+        if (listFilterDept !== 'all') {
+            const deptId = typeof classObj.departmentId === 'object'
+                ? (classObj.departmentId._id || classObj.departmentId.id)
+                : classObj.departmentId;
+            if (deptId !== listFilterDept) return false;
+        }
+
+        if (listFilterBatch !== 'all') {
+            const batchId = typeof classObj.batchId === 'object'
+                ? (classObj.batchId._id || classObj.batchId.id)
+                : classObj.batchId;
+            if (batchId !== listFilterBatch) return false;
+        }
+
         return true;
     });
 
@@ -249,8 +277,52 @@ export default function StudentManagement() {
                 </div>
             </div>
 
+            {/* Filter Section */}
+            <div className="flex gap-4 items-end">
+                <div className="space-y-2">
+                    <Label>Filter by Department</Label>
+                    <Select value={listFilterDept} onValueChange={setListFilterDept}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="All Departments" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Departments</SelectItem>
+                            {departments.map(dept => (
+                                <SelectItem key={dept._id || dept.id} value={dept._id || dept.id}>
+                                    {dept.code} - {dept.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Filter by Batch</Label>
+                    <Select value={listFilterBatch} onValueChange={setListFilterBatch}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="All Batches" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Batches</SelectItem>
+                            {batches.map(batch => (
+                                <SelectItem key={batch._id || batch.id} value={batch._id || batch.id}>
+                                    {batch.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                {(listFilterDept !== 'all' || listFilterBatch !== 'all') && (
+                    <Button
+                        variant="outline"
+                        onClick={() => { setListFilterDept('all'); setListFilterBatch('all'); }}
+                    >
+                        Clear Filters
+                    </Button>
+                )}
+            </div>
+
             <DataTable
-                data={students}
+                data={filteredStudents}
                 columns={columns}
                 searchable
                 searchPlaceholder="Search students..."

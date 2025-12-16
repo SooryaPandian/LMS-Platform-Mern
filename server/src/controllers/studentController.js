@@ -3,7 +3,7 @@ const Class = require('../models/Class');
 
 const getStudents = async (req, res) => {
   try {
-    const { page = 1, limit = 25, search = '', classId, departmentId, batchId } = req.query;
+    const { page = 1, limit = 1000, search = '', classId, departmentId, batchId } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
     const query = {};
     

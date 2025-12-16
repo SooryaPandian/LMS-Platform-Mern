@@ -8,12 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Course } from '@/types';
+import { Course, Department } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 
 export default function CourseManagement() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({
@@ -23,11 +24,14 @@ export default function CourseManagement() {
     credits: 3,
     category: 'Core' as 'Core' | 'Elective' | 'Lab' | 'Project',
     description: '',
+    semester: 1,
+    departmentId: '',
   });
 
   // Load courses on mount
   useEffect(() => {
     fetchCourses();
+    fetchDepartments();
   }, []);
 
   const fetchCourses = async () => {
@@ -38,6 +42,16 @@ export default function CourseManagement() {
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error('Failed to load courses');
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.getDepartments();
+      const deptList = Array.isArray(response) ? response : (response as any)?.data || [];
+      setDepartments(deptList);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
     }
   };
 
@@ -63,6 +77,17 @@ export default function CourseManagement() {
 
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
+
+    // Extract departmentId
+    let deptId = '';
+    if ((course as any).departmentId) {
+      if (typeof (course as any).departmentId === 'object') {
+        deptId = (course as any).departmentId._id || (course as any).departmentId.id || '';
+      } else {
+        deptId = (course as any).departmentId;
+      }
+    }
+
     setFormData({
       id: (course as any)._id || course.id,
       code: course.code,
@@ -70,6 +95,8 @@ export default function CourseManagement() {
       credits: course.credits,
       category: course.category,
       description: course.description || '',
+      semester: (course as any).semester || 1,
+      departmentId: deptId,
     });
     setDialogOpen(true);
   };
@@ -95,6 +122,8 @@ export default function CourseManagement() {
       credits: 3,
       category: 'Core',
       description: '',
+      semester: 1,
+      departmentId: '',
     });
   };
 
@@ -109,6 +138,20 @@ export default function CourseManagement() {
       ),
     },
     { key: 'credits', label: 'Credits' },
+    {
+      key: 'semester',
+      label: 'Semester',
+      render: (course: Course) => `Semester ${(course as any).semester || '-'}`
+    },
+    {
+      key: 'departmentId',
+      label: 'Department',
+      render: (course: Course) => {
+        const dept = (course as any).departmentId;
+        if (typeof dept === 'object') return dept?.code || dept?.name || '-';
+        return dept || '-';
+      }
+    },
   ];
 
   return (
@@ -184,6 +227,45 @@ export default function CourseManagement() {
               />
             </div>
 
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="departmentId">Department *</Label>
+                <Select
+                  value={formData.departmentId}
+                  onValueChange={(value) => setFormData({ ...formData, departmentId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(dept => (
+                      <SelectItem key={dept._id || dept.id} value={dept._id || dept.id}>
+                        {dept.code} - {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="semester">Semester *</Label>
+                <Select
+                  value={formData.semester.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, semester: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                      <SelectItem key={sem} value={sem.toString()}>
+                        Semester {sem}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
               <Select
@@ -203,17 +285,15 @@ export default function CourseManagement() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Course description..."
                 rows={3}
+                required
               />
-              <p className="text-xs text-muted-foreground">
-                Note: Courses are assigned to specific semesters through the Regulation Management system
-              </p>
             </div>
 
             <div className="flex justify-end gap-2">

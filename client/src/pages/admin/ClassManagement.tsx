@@ -68,7 +68,7 @@ export default function ClassManagement() {
 
         try {
             if (editingClass) {
-                await api.updateClass(editingClass.id, formData);
+                await api.updateClass(editingClass._id || editingClass.id, formData);
                 toast.success('Class updated successfully');
             } else {
                 await api.createClass(formData);
@@ -85,10 +85,30 @@ export default function ClassManagement() {
 
     const handleEdit = (classItem: Class) => {
         setEditingClass(classItem);
+
+        // Extract IDs properly
+        let deptId = '';
+        if (classItem.departmentId) {
+            if (typeof classItem.departmentId === 'object') {
+                deptId = (classItem.departmentId as any)._id || (classItem.departmentId as any).id || '';
+            } else {
+                deptId = classItem.departmentId;
+            }
+        }
+
+        let batchIdStr = '';
+        if (classItem.batchId) {
+            if (typeof classItem.batchId === 'object') {
+                batchIdStr = (classItem.batchId as any)._id || (classItem.batchId as any).id || '';
+            } else {
+                batchIdStr = classItem.batchId;
+            }
+        }
+
         setFormData({
-            id: classItem.id,
-            departmentId: typeof classItem.departmentId === 'object' ? classItem.departmentId.id : classItem.departmentId,
-            batchId: typeof classItem.batchId === 'object' ? classItem.batchId.id : classItem.batchId,
+            id: classItem._id || classItem.id,
+            departmentId: deptId,
+            batchId: batchIdStr,
             name: classItem.name,
         });
         setDialogOpen(true);
@@ -97,7 +117,7 @@ export default function ClassManagement() {
     const handleDelete = async (classItem: Class) => {
         if (confirm(`Are you sure you want to delete this class?`)) {
             try {
-                await api.deleteClass(classItem.id);
+                await api.deleteClass(classItem._id || classItem.id);
                 toast.success('Class deleted successfully');
                 fetchClasses();
             } catch (error: any) {
@@ -207,7 +227,7 @@ export default function ClassManagement() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {departments.map(dept => (
-                                            <SelectItem key={dept.id} value={dept.id}>
+                                            <SelectItem key={dept._id || dept.id} value={dept._id || dept.id}>
                                                 {dept.code} - {dept.name}
                                             </SelectItem>
                                         ))}
@@ -225,7 +245,7 @@ export default function ClassManagement() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {batches.map(batch => (
-                                            <SelectItem key={batch.id} value={batch.id}>
+                                            <SelectItem key={batch._id || batch.id} value={batch._id || batch.id}>
                                                 {batch.name}
                                             </SelectItem>
                                         ))}

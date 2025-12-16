@@ -2,7 +2,7 @@ const Course = require('../models/Course');
 
 const getCourses = async (req, res) => {
   try {
-    const { page = 1, limit = 25, search = '' } = req.query;
+    const { page = 1, limit = 1000, search = '' } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
     const query = search ? { $or: [{ title: { $regex: search, $options: 'i' } }, { code: { $regex: search, $options: 'i' } }] } : {};
     const courses = await Course.find(query).skip(skip).limit(Number(limit)).sort({ code: 1 });

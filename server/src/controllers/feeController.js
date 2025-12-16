@@ -2,7 +2,7 @@ const Fee = require('../models/Fee');
 
 const getFees = async (req, res) => {
   try {
-    const { page = 1, limit = 25 } = req.query;
+    const { page = 1, limit = 1000 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
     const query = {};
     if (req.query.studentId) query.studentId = req.query.studentId;
