@@ -496,12 +496,6 @@ class ApiClient {
       method: 'GET',
     });
   }
-
-  async getClassStudents(classId: string) {
-    return this.request<any>(`/classes/${classId}/students`, {
-      method: 'GET',
-    });
-  }
 }
 
 export const api = new ApiClient();

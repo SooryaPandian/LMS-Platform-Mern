@@ -4,25 +4,42 @@ import { Input } from '@/components/ui/input';
 import { Users, Search, Mail, Phone, GraduationCap } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ClassStudents() {
+    const { user, loading: authLoading } = useAuth();
     const [classes, setClasses] = useState<any[]>([]);
     const [selectedClass, setSelectedClass] = useState('all');
     const [students, setStudents] = useState<Record<string, any[]>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [myClassesOnly, setMyClassesOnly] = useState(true); // Default to showing only my classes
+
+    // Get the faculty ID - could be id or _id depending on the source
+    const facultyId = (user as any)?._id || user?.id;
 
     useEffect(() => {
-        fetchClasses();
-    }, []);
+        if (!authLoading) {
+            fetchClasses();
+        }
+    }, [authLoading, myClassesOnly, facultyId]);
 
     const fetchClasses = async () => {
+        setIsLoading(true);
         try {
-            const response = await api.getCourseAllocations();
+            // If myClassesOnly is enabled and we have a faculty ID, filter by faculty
+            const params = myClassesOnly && facultyId ? { facultyId } : {};
+            console.log('=== Fetching classes ===');
+            console.log('Params:', params);
+
+            const response = await api.getCourseAllocations(params);
+            console.log('API Response:', response);
+
             const allocations = Array.isArray(response) ? response : (response as any)?.data || [];
+            console.log('Allocations:', allocations);
 
             // Extract unique classes
             const uniqueClasses = new Map();
@@ -34,6 +51,7 @@ export default function ClassStudents() {
             });
 
             const classList = Array.from(uniqueClasses.values());
+            console.log('Unique classes:', classList);
             setClasses(classList);
 
             // Fetch students for each class
@@ -51,15 +69,23 @@ export default function ClassStudents() {
 
         for (const classInfo of classList) {
             try {
-                const response = await api.getClassStudents(classInfo._id || classInfo.id);
+                const classId = classInfo._id || classInfo.id;
+                console.log('Fetching students for class:', classId, classInfo.name);
+
+                const response = await api.getClassStudents(classId);
+                console.log('Students response for', classInfo.name, ':', response);
+
                 const studentList = Array.isArray(response) ? response : (response as any)?.data || [];
-                studentsData[classInfo._id || classInfo.id] = studentList;
+                console.log('Student list for', classInfo.name, ':', studentList.length, 'students');
+
+                studentsData[classId] = studentList;
             } catch (error: any) {
                 console.error(`Error fetching students for class ${classInfo.name}:`, error);
                 studentsData[classInfo._id || classInfo.id] = [];
             }
         }
 
+        console.log('Final students data:', studentsData);
         setStudents(studentsData);
     };
 
@@ -91,7 +117,7 @@ export default function ClassStudents() {
         );
     };
 
-    if (isLoading) {
+    if (isLoading || authLoading) {
         return <div className="flex items-center justify-center h-64">Loading...</div>;
     }
 
@@ -110,7 +136,7 @@ export default function ClassStudents() {
                     <CardTitle>Filter Students</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label>Class</Label>
                             <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -124,7 +150,7 @@ export default function ClassStudents() {
                                         const batch = typeof classInfo.batchId === 'object' ? classInfo.batchId : null;
                                         return (
                                             <SelectItem key={classInfo._id || classInfo.id} value={classInfo._id || classInfo.id}>
-                                                {dept?.name || 'Dept'} - {batch?.name || 'Batch'} - {classInfo.name}
+                                                {dept?.code || 'Dept'} - {batch?.name || 'Batch'} - Section {classInfo.name}
                                             </SelectItem>
                                         );
                                     })}
@@ -144,11 +170,34 @@ export default function ClassStudents() {
                                 />
                             </div>
                         </div>
+
+                        <div className="space-y-2">
+                            <Label>Show</Label>
+                            <div className="flex items-center space-x-2 h-10">
+                                <Switch
+                                    id="my-classes"
+                                    checked={myClassesOnly}
+                                    onCheckedChange={setMyClassesOnly}
+                                />
+                                <Label htmlFor="my-classes" className="cursor-pointer">
+                                    My Classes Only
+                                </Label>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {selectedClass === 'all' ? (
+            {classes.length === 0 ? (
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                        <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">
+                            {myClassesOnly ? 'No classes assigned to you yet' : 'No classes found'}
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : selectedClass === 'all' ? (
                 <div className="space-y-4">
                     {displayClasses.map(classInfo => {
                         const classId = classInfo._id || classInfo.id;
@@ -163,10 +212,10 @@ export default function ClassStudents() {
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <GraduationCap className="h-5 w-5" />
-                                                <CardTitle>{classInfo.name}</CardTitle>
+                                                <CardTitle>{dept?.code || 'Dept'} - {batch?.name || 'Batch'} - Section {classInfo.name}</CardTitle>
                                             </div>
                                             <CardDescription className="mt-1">
-                                                {dept?.name || 'Department'} • {batch?.name || 'Batch'} • {filteredStudents.length} students
+                                                {dept?.name || 'Department'} • {filteredStudents.length} students
                                             </CardDescription>
                                         </div>
                                     </div>
