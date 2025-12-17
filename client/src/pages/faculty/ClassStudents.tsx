@@ -246,16 +246,15 @@ export default function ClassStudents() {
                                 </Card>
                             ))}
                             {getFilteredStudents(selectedClass).length === 0 && (
-                                className = "text-center py-12 text-muted-foreground" >
-                                rs className="mx-auto h-12 w-12 mb-4" />
-                            o students found</p>
-                            v>
-
-                    </div>
-                </CardContent>
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Users className="mx-auto h-12 w-12 mb-4" />
+                                    <p>No students found</p>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
                 </Card>
-    )
-}
-        </div >
+            )}
+        </div>
     );
 }

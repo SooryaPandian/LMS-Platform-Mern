@@ -5,18 +5,41 @@ import { BookOpen, Users, FileText, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function MyClasses() {
+    const { user, loading: authLoading } = useAuth();
     const [classes, setClasses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Get the faculty ID - could be id or _id depending on the source
+    const facultyId = (user as any)?._id || user?.id;
+
+    // Debug logs - check browser console
+    console.log('=== MyClasses render ===');
+    console.log('authLoading:', authLoading);
+    console.log('user:', user);
+    console.log('facultyId:', facultyId);
+
     useEffect(() => {
-        fetchClasses();
-    }, []);
+        // Wait for auth to finish, then fetch if user exists
+        if (!authLoading) {
+            if (facultyId) {
+                fetchClasses();
+            } else {
+                // No user, stop loading
+                setIsLoading(false);
+            }
+        }
+    }, [facultyId, authLoading]);
 
     const fetchClasses = async () => {
+        setIsLoading(true);
         try {
-            const response = await api.getCourseAllocations();
+            // Pass the faculty ID to filter allocations
+            console.log('Fetching classes for faculty:', facultyId);
+            const response = await api.getCourseAllocations({ facultyId: facultyId });
+            console.log('API response:', response);
             const classList = Array.isArray(response) ? response : (response as any)?.data || [];
             setClasses(classList);
         } catch (error: any) {
@@ -27,7 +50,7 @@ export default function MyClasses() {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || authLoading) {
         return <div className="flex items-center justify-center h-64">Loading...</div>;
     }
 

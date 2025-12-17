@@ -7,11 +7,19 @@ const CourseAssignment = require('../models/CourseAssignment');
 // Get course allocations with filters
 const getCourseAllocations = async (req, res) => {
   try {
-    const { page = 1, limit = 100, classId, semester, departmentId, batchId } = req.query;
+    const { page = 1, limit = 100, classId, semester, departmentId, batchId, facultyId } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
+    
+    console.log('=== getCourseAllocations ===');
+    console.log('Query params:', { classId, semester, departmentId, batchId, facultyId });
     
     let query = {};
     
+    // Filter by faculty if provided (faculty can only see their assigned classes)
+    if (facultyId) {
+      query.facultyIds = facultyId;
+      console.log('Filtering by facultyId:', facultyId);
+    }
     if (classId) {
       query.classId = classId;
     }
@@ -46,6 +54,10 @@ const getCourseAllocations = async (req, res) => {
       .sort({ semester: 1, courseId: 1 });
     
     const total = await CourseAllocation.countDocuments(query);
+    
+    console.log('Final query:', JSON.stringify(query));
+    console.log('Found allocations:', allocations.length);
+    console.log('Total in DB:', total);
     
     res.json({ 
       data: allocations, 
