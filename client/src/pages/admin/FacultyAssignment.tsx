@@ -182,7 +182,7 @@ export default function FacultyAssignment() {
     };
 
     const getCourseDetails = (courseId: string) => {
-        return courses.find(c => c.id === courseId);
+        return courses.find(c => (c._id || c.id) === courseId);
     };
 
     const getFilteredFaculty = (classId: string) => {
